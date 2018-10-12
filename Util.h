@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <stdio.h>
+#include <cmath>
 
 template <class T>
 T getAt(std::list<T> source, int ix) {

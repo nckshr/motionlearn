@@ -1,4 +1,3 @@
-#pragma once
 #include "MIO.h"
 
 extern bool verbose;
