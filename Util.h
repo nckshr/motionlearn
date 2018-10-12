@@ -29,3 +29,5 @@ void rotate2D(double &vx, double &vy, double theta);
 void normalize(double &vx, double &vy);
 int argmin(std::vector<double> &x);
 std::vector<std::string> split_string(std::string s, char delim);
+Eigen::VectorXd fromStdVector(std::vector<double> x) { return Eigen::VectorXd(x.data()); };
+std::vector<double> fromEigenVector(Eigen::VectorXd x) { return std::vector<double>(x.data(), x.data() + x.rows() * x.cols()); }
