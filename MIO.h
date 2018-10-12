@@ -1,5 +1,5 @@
 #pragma once
-#include "lib/Eigen/Dense"
+#include "lib/Eigen/Core"
 #include <fstream>
 #include <ostream>
 #include <iostream>
