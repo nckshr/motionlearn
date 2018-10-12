@@ -1,7 +1,7 @@
 # additional target to perform clang-format run, requires clang-format
 
 # get all project files
-file(GLOB_RECURSE ALL_SOURCE_FILES AMLPlanningLib/*.cpp AMLPlanningLib/*.h)
+file(GLOB_RECURSE ALL_SOURCE_FILES *.cpp *.h)
 
 add_custom_target(
         clangformat

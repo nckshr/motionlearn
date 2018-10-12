@@ -1,7 +1,5 @@
 // MotionLearn.cpp : Defines the entry point for the console application.
 
-
-
 #include "MIO.h"
 
 #include "lib/Eigen/Core"
@@ -14,8 +12,6 @@
 
 #include <cstring>
 
-
-
 /**
 
 * prototypes
@@ -26,171 +22,146 @@ static void ShowUsage(void);
 
 static void CheckOption(char *option, int argc, int minargc);
 
-
-
 bool verbose = false;
 
+int main(int argc, char *argv[]) {
 
+  // first argument is program name
 
-int main(int argc, char* argv[]) {
+  argv++, argc--;
 
-	// first argument is program name
+  // look for help
 
-	argv++, argc--;
+  for (int i = 0; i < argc; i++) {
 
+    if (!strcmp(argv[i], "-help")) {
 
+      ShowUsage();
+    }
+  }
 
-	// look for help
+  // apply options
 
-	for (int i = 0; i < argc; i++) {
+  for (int i = 0; i < argc; i++) {
 
-		if (!strcmp(argv[i], "-help")) {
+    if (!strcmp(*argv, "-v"))
 
-			ShowUsage();
+    {
 
-		}
+      verbose = true;
 
-	}
+      argv += 1, argc -= 1;
+    }
+  }
 
-	//apply options 
+  // no argument case
 
-	for (int i = 0; i < argc; i++) {
+  if (argc == 0) {
 
-		if (!strcmp(*argv, "-v"))
+    ShowUsage();
+  }
 
-		{
+  // parse arguments
 
-			verbose = true;
+  while (argc > 0)
 
-			argv += 1, argc -= 1;
+  {
 
-		}
+    if (**argv == '-')
 
-		
+    {
 
-	}
+      if (!strcmp(*argv, "-loadData"))
 
-	// no argument case
+      {
 
-	if (argc == 0) {
+        int numopts = 1;
 
-		ShowUsage();
+        // numopts+1 because parameter name itself counts
 
-	}
+        CheckOption(*argv, argc, numopts + 1);
 
+        // TODO: call network function
 
+        Eigen::MatrixXd data = matrixFromFile(argv[1], 0, ',');
 
-	// parse arguments
+        data = data.block(0, 1, 100, 784);
 
-	while (argc > 0)
+        std::cout << "Read in " << data.rows() << " x " << data.cols()
+                  << "matrix." << std::endl;
 
-	{
+        argv += numopts + 1, argc -= numopts + 1;
 
-		if (**argv == '-')
+        int nHidden = 100;
 
-		{
+        int nClasses = 10;
 
-			if (!strcmp(*argv, "-loadData"))
+        Eigen::MatrixXd inputToHidden =
+            Eigen::MatrixXd::Random(784, nHidden) * 0.1;
 
-			{
+        Eigen::MatrixXd hiddenToOutput =
+            Eigen::MatrixXd::Random(nHidden, nClasses) * 0.1;
 
-				int numopts = 1;
+        // for first 10 rows
 
-				//numopts+1 because parameter name itself counts
+        for (int i = 0; i < 10; i++) {
 
-				CheckOption(*argv, argc, numopts + 1);
+          Eigen::VectorXd hiddenLayer = (data.row(i) * inputToHidden).row(0);
 
-				//TODO: call network function
+          // apply RELU
 
-				Eigen::MatrixXd data = matrixFromFile(argv[1], 0, ',');
+          for (int j = 0; j < hiddenLayer.cols(); j++) {
 
-				data = data.block(0, 1, 100, 784);
+            hiddenLayer[j] = hiddenLayer[j] < 0 ? 0 : hiddenLayer[j];
+          }
 
-				std::cout << "Read in " << data.rows() << " x " << data.cols() << "matrix." << std::endl;
+          Eigen::VectorXd output =
+              (hiddenLayer.transpose() * hiddenToOutput).row(0);
 
-				argv += numopts + 1, argc -= numopts + 1;
+          // prediction is whatever class has max value
+        }
 
-				int nHidden = 100;
+      }
 
-				int nClasses = 10;
+      else if (!strcmp(*argv, "-forwardProp"))
 
-				Eigen::MatrixXd inputToHidden = Eigen::MatrixXd::Random(784, nHidden)*0.1;
+      {
 
-				Eigen::MatrixXd hiddenToOutput = Eigen::MatrixXd::Random(nHidden, nClasses)*0.1;
+        int numopts = 0;
 
-				//for first 10 rows
+        // numopts+1 because parameter name itself counts
 
-				for (int i = 0; i < 10; i++) {					
+        CheckOption(*argv, argc, numopts + 1);
 
-					Eigen::VectorXd hiddenLayer = (data.row(i) * inputToHidden).row(0);
+        // TODO: call network function
 
-					//apply RELU
+        argv += numopts + 1, argc -= numopts + 1;
 
-					for (int j = 0; j < hiddenLayer.cols(); j++) {
+      }
 
-						hiddenLayer[j] = hiddenLayer[j] < 0 ? 0 : hiddenLayer[j];
+      else
 
-					}
+      {
 
-					Eigen::VectorXd output = (hiddenLayer.transpose() * hiddenToOutput).row(0);
+        fprintf(stderr, "invalid option: %s\n", *argv);
 
-					//prediction is whatever class has max value
+        ShowUsage();
+      }
 
-				}
+    }
 
-				
+    else
 
-			}
+    {
 
-			else if (!strcmp(*argv, "-forwardProp"))
+      fprintf(stderr, "DeepNav: invalid option (2): %s\n", *argv);
 
-			{
+      ShowUsage();
+    }
+  }
 
-				int numopts = 0;
-
-				//numopts+1 because parameter name itself counts
-
-				CheckOption(*argv, argc, numopts+1);
-
-				//TODO: call network function
-
-				argv += numopts+1, argc -= numopts+1;
-
-			}			
-
-			else
-
-			{
-
-				fprintf(stderr, "invalid option: %s\n", *argv);
-
-				ShowUsage();
-
-			}
-
-		}
-
-		else
-
-		{
-
-			fprintf(stderr, "DeepNav: invalid option (2): %s\n", *argv);
-
-			ShowUsage();
-
-		}
-
-	}
-
-
-
-	return EXIT_SUCCESS;
-
+  return EXIT_SUCCESS;
 }
-
-
-
-
 
 /**
 
@@ -200,33 +171,24 @@ int main(int argc, char* argv[]) {
 
 static char options[] =
 
-"-help (show this message)\n"
+    "-help (show this message)\n"
 
-"-v verbose output\n"
+    "-v verbose output\n"
 
-"- forwardProp\n"
+    "- forwardProp\n"
 
-;
-
-
+    ;
 
 static void ShowUsage(void)
 
 {
 
-	fprintf(stderr, "Usage: DeepNav [-option [arg ...] ...] -output \n");
+  fprintf(stderr, "Usage: DeepNav [-option [arg ...] ...] -output \n");
 
-	fprintf(stderr, "%s", options);
+  fprintf(stderr, "%s", options);
 
-	exit(EXIT_FAILURE);
-
+  exit(EXIT_FAILURE);
 }
-
-
-
-
-
-
 
 /**
 
@@ -238,16 +200,13 @@ static void CheckOption(char *option, int argc, int minargc)
 
 {
 
-	if (argc < minargc)
+  if (argc < minargc)
 
-	{
+  {
 
-		fprintf(stderr, "Too few arguments for %s, expected %d, received %d\n", option, minargc, argc);
+    fprintf(stderr, "Too few arguments for %s, expected %d, received %d\n",
+            option, minargc, argc);
 
-		ShowUsage();
-
-	}
-
+    ShowUsage();
+  }
 }
-
-
