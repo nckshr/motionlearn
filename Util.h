@@ -1,4 +1,5 @@
 #pragma once
+#include "lib/Eigen/Core"
 #include <algorithm>
 #include <cmath>
 #include <list>
@@ -6,7 +7,6 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
-#include "lib/Eigen/Core"
 template <class T> T getAt(std::list<T> source, int ix) {
   T toReturn;
   int i = 0;
@@ -28,7 +28,6 @@ void rotate2D(double &vx, double &vy, double theta);
 void normalize(double &vx, double &vy);
 int argmin(std::vector<double> &x);
 std::vector<std::string> split_string(std::string s, char delim);
-//Eigen::VectorXd fromStdVector(std::vector<double> x) {
+// Eigen::VectorXd fromStdVector(std::vector<double> x) {
 //  return Eigen::VectorXd(x.data());
 //};
-
