@@ -29,7 +29,7 @@ std::vector<intDoublePair> sortWithIndexReturn(std::list<double> toSort) {
   std::sort(sorted.begin(), sorted.end(), comparator);
   return sorted;
 }
-void softmax(std::vector<double> &x) {
+void softmax(Eigen::VectorXd &x) {
   double esum = 0;
   for (int i = 0; i < x.size(); i++) {
     x[i] = std::exp(x[i]);

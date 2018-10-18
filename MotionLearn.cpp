@@ -82,31 +82,28 @@ int main(int argc, char *argv[]) {
         CheckOption(*argv, argc, numopts + 1);
 
         // TODO: call network function
-
-        Eigen::MatrixXd data = matrixFromFile(argv[1], 0, ',');
-
-        data = data.block(0, 1, 100, 784);
-
+		std::cout << "Attempting to read file " << argv[1] << std::endl;
+        Eigen::MatrixXd rawData = matrixFromFile(argv[1], 0, ',');
+		std::cout << "Read in " << rawData.rows() << "x" << rawData.cols() << "raw file " << std::endl;
+        Eigen::MatrixXd data = rawData.topRightCorner(100, 784);
         std::cout << "Read in " << data.rows() << " x " << data.cols()
                   << "matrix." << std::endl;
-
         argv += numopts + 1, argc -= numopts + 1;
-
         int nHidden = 100;
-
+		
         int nClasses = 10;
 
         Eigen::MatrixXd inputToHidden =
-            Eigen::MatrixXd::Random(784, nHidden) * 0.1;
+            Eigen::MatrixXd::Random(784, nHidden);
 
         Eigen::MatrixXd hiddenToOutput =
-            Eigen::MatrixXd::Random(nHidden, nClasses) * 0.1;
+            Eigen::MatrixXd::Random(nHidden, nClasses);
 
         // for first 10 rows
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 5; i++) {
 
-          Eigen::VectorXd hiddenLayer = (data.row(i) * inputToHidden).row(0);
+          Eigen::VectorXd hiddenLayer = (data.row(i) * inputToHidden);
 
           // apply RELU
 
@@ -116,9 +113,14 @@ int main(int argc, char *argv[]) {
           }
 
           Eigen::VectorXd output =
-              (hiddenLayer.transpose() * hiddenToOutput).row(0);
-
+              (hiddenLayer.transpose() * hiddenToOutput);
+		  output = output - Eigen::VectorXd::Ones(output.size()) * output.maxCoeff();
+		  softmax(output);
           // prediction is whatever class has max value
+		  std::cout << "row " << i << " prediction:" << std::endl;
+		  std::cout << output.transpose() << std::endl;
+		  std::cout << "ground truth: " << rawData(i, 0) << std::endl;
+
         }
 
       }
