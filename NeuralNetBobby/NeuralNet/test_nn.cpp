@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
-#include <Eigen/Core>
+#include "../../lib/Eigen/Core"
 #include <getopt.h>
 
 struct NNArgs {

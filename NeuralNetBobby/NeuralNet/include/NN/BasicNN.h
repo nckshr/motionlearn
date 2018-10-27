@@ -1,6 +1,6 @@
 #include <vector>
 #include <string>
-#include <Eigen/Core>
+#include "../../../../lib/Eigen/Core"
 
 enum LayerType {
   Pass = 0,
