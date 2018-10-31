@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
-#include "../../lib/Eigen/Core"
+#include <Eigen/Core>
 #include <getopt.h>
 
 struct NNArgs {
@@ -19,7 +19,7 @@ struct NNArgs {
   std::string nn_save_file;
   int batch_size = 100;
   int n_epochs = 100;
-  double alpha = 0.001;
+  float alpha = 0.001f;
 };
 
 NNArgs ReadParams(int argc, char** argv) {
@@ -85,14 +85,14 @@ NNArgs ReadParams(int argc, char** argv) {
   return args;
 }
 
-void LoadData(std::string file_name, Eigen::MatrixXd& data, Eigen::VectorXi& labels) {
+void LoadData(std::string file_name, Eigen::MatrixXf& data, Eigen::VectorXi& labels) {
   std::vector<std::vector<std::string>> data_vec = LoadFileByToken(file_name, 1, ',');
 
-  data = Eigen::MatrixXd::Zero(data_vec[0].size()-1,data_vec.size());
-  labels = Eigen::VectorXi::Zero(data_vec.size());
-  for (size_t i = 0; i < data_vec.size(); ++i) {
+  data = Eigen::MatrixXf::Zero(static_cast<int>(data_vec[0].size())-1,static_cast<int>(data_vec.size()));
+  labels = Eigen::VectorXi::Zero(static_cast<int>(data_vec.size()));
+  for (int i = 0; i < static_cast<int>(data_vec.size()); ++i) {
     labels[i] = std::atoi(data_vec[i][0].c_str());
-    for (size_t j = 1; j < data_vec[i].size(); ++j) {
+    for (int j = 1; j < static_cast<int>(data_vec[i].size()); ++j) {
       data(j-1,i) = std::atof(data_vec[i][j].c_str());
     }
   }
@@ -113,39 +113,39 @@ int main(int argc, char** argv) {
     nn = new BasicNN(layers, CostType::CrossEntropy);
   }
   if (args.train_data) {
-    Eigen::MatrixXd train_data;
+    Eigen::MatrixXf train_data;
     Eigen::VectorXi train_labels;
     std::cout << "Loading Test Data..." << std::flush;
     LoadData(args.train_file, train_data, train_labels);
     std::cout << "Done!" << std::endl;
     {
       int n_correct;
-      double cost = nn->ComputeCostBatch(train_data,train_labels,100, &n_correct);
+      float cost = nn->ComputeCostBatch(train_data,train_labels,100, &n_correct);
       std::cout << "Initial:  Train: Number correctly classified: " << n_correct << "  cost: " << cost << std::endl;
     }
     //double cost_init = nn.ComputeCost(data, labels);
     for (int i = 0; i < args.n_epochs; ++i) {
-      nn->UpdateWeightsBatch(train_data, train_labels, 0.0001, 100);
+      nn->UpdateWeightsBatch(train_data, train_labels, args.alpha, args.batch_size);
       if (i % 10 == 0) {
         int n_correct;
-        double cost = nn->ComputeCostBatch(train_data,train_labels,100, &n_correct);
+        float cost = nn->ComputeCostBatch(train_data,train_labels,100, &n_correct);
         std::cout << "Epoch: " << i << " Train: Number correctly classified: " << n_correct << "/" << train_labels.size() << "  cost: " << cost << std::endl;
       }
     }
     {
       int n_correct;
-      double cost = nn->ComputeCostBatch(train_data,train_labels,100, &n_correct);
+      float cost = nn->ComputeCostBatch(train_data,train_labels,100, &n_correct);
       std::cout << "Final:  Train: Number correctly classified: " << n_correct << "  cost: " << cost << std::endl;
     }
   }
   if (args.test_data) {
-    Eigen::MatrixXd test_data;
+    Eigen::MatrixXf test_data;
     Eigen::VectorXi test_labels;
     std::cout << "Loading Test Data..." << std::flush;
     LoadData(args.test_file, test_data, test_labels);
     std::cout << "Done!" << std::endl;
     int n_correct;
-    double cost = nn->ComputeCostBatch(test_data,test_labels,100, &n_correct);
+    float cost = nn->ComputeCostBatch(test_data,test_labels,100, &n_correct);
     std::cout << "Test: Number correctly classified: " << n_correct << "/" << test_labels.size() << "  cost: " << cost << std::endl;
   }
   if (args.save_nn) {

@@ -11,7 +11,7 @@ BasicNN::BasicNN(std::vector<std::pair<LayerType,int>> _layers, CostType _cost_t
     int dim_1 = layers[i].second;
     int dim_2 = layers[i+1].second;
 
-    Eigen::MatrixXd W = Eigen::MatrixXd::Random(dim_2,dim_1);
+    Eigen::MatrixXf W = Eigen::MatrixXf::Random(dim_2,dim_1);
     weights.push_back(W);
   }
 }
@@ -41,7 +41,7 @@ void BasicNN::LoadFromFile(std::string file_name) {
     int dim_1 = layers[i].second;
     int dim_2 = layers[i+1].second;
 
-    Eigen::MatrixXd W = Eigen::MatrixXd::Zero(dim_2,dim_1);
+    Eigen::MatrixXf W = Eigen::MatrixXf::Zero(dim_2,dim_1);
     weights.push_back(W);
   }
   int file_row = 2;
@@ -90,44 +90,41 @@ void BasicNN::SaveToFile(std::string file_name) {
   net_file.close();
 }
 
-Eigen::VectorXd BasicNN::ComputeSoftMax(const Eigen::VectorXd& v) const {
-  Eigen::VectorXd out = v;
-  double max_v = out.maxCoeff();
+Eigen::VectorXf BasicNN::ComputeSoftMax(const Eigen::VectorXf& v) const {
+  Eigen::VectorXf out = v;
+  float max_v = out.maxCoeff();
   out.array() -= max_v;
   out = out.array().exp();
   out /= out.sum();
   return out;
 }
 
-Eigen::MatrixXd BasicNN::ApplyLayer(const Eigen::MatrixXd& vals, const LayerType type) const {
-  Eigen::MatrixXd out;
+void BasicNN::ApplyLayer(Eigen::MatrixXf& vals, const LayerType type) const {
   if (type == LayerType::RELU) {
-    out = vals.array().max(0);
+    vals = vals.array().max(0.0f);
   } else if (type == LayerType::SoftMax) {
-    out = vals;
-    for (int i = 0; i < out.cols(); ++i) {
-      out.col(i) = ComputeSoftMax(out.col(i));
+    for (int i = 0; i < vals.cols(); ++i) {
+      vals.col(i) = ComputeSoftMax(vals.col(i));
     }
   } else if (type == LayerType::Pass) {
-    out = vals;
+    // Do nothing
   } else {
     std::cerr << "Layer Type Not Implemented!" << std::endl;
     exit(-1);
   }
-  return out;
 }
 
-Eigen::MatrixXd BasicNN::ForwardProp(const Eigen::MatrixXd& data, std::vector<Eigen::MatrixXd>* intermediate_values) const {
-  Eigen::MatrixXd curr_vals = data;
+Eigen::MatrixXf BasicNN::ForwardProp(const Eigen::MatrixXf& data, std::vector<Eigen::MatrixXf>* intermediate_values) const {
+  Eigen::MatrixXf curr_vals = data;
   // Save results, if needed
   if (intermediate_values != nullptr) {
     intermediate_values->push_back(curr_vals);
   }
   for (size_t i = 0; i < layers.size()-1; ++i) {
     // Apply Weights:
-    curr_vals = weights[i] * curr_vals;
+    curr_vals.applyOnTheLeft(weights[i]); // = weights[i] * curr_vals;
     // Apply Non-linearity
-    curr_vals = ApplyLayer(curr_vals, layers[i+1].first);
+    ApplyLayer(curr_vals, layers[i+1].first);
 
     // Save results, if needed
     if (intermediate_values != nullptr) {
@@ -137,14 +134,14 @@ Eigen::MatrixXd BasicNN::ForwardProp(const Eigen::MatrixXd& data, std::vector<Ei
   return curr_vals;
 }
 
-int BasicNN::Classify(const Eigen::VectorXd& example) const {
-  Eigen::MatrixXd probs = ForwardProp(example);
+int BasicNN::Classify(const Eigen::VectorXf& example) const {
+  Eigen::MatrixXf probs = ForwardProp(example);
   int r,c;
   probs.maxCoeff(&r,&c);
   return r;
 }
 
-int BasicNN::NCorrectClassified(const Eigen::MatrixXd& data, const Eigen::VectorXi& labels) const {
+int BasicNN::NCorrectClassified(const Eigen::MatrixXf& data, const Eigen::VectorXi& labels) const {
   int n_correct = 0;
   for (int i = 0; i < labels.rows(); ++i) {
     int guess = Classify(data.col(i));
@@ -153,13 +150,13 @@ int BasicNN::NCorrectClassified(const Eigen::MatrixXd& data, const Eigen::Vector
   return n_correct;
 }
 
-double BasicNN::ComputeCost(const Eigen::MatrixXd& data, const Eigen::VectorXi& labels, int* n_correct) const {
-  Eigen::MatrixXd results = ForwardProp(data);
-  double cost = 0.0;
+float BasicNN::ComputeCost(const Eigen::MatrixXf& data, const Eigen::VectorXi& labels, int* n_correct) const {
+  Eigen::MatrixXf results = ForwardProp(data);
+  float cost = 0.0f;
   if (n_correct != nullptr) { (*n_correct) = 0; }
   for (int i = 0; i < results.cols(); ++i) {
-    double p_i = results(labels[i], i);
-    cost += std::log(std::max(p_i, 1e-15));
+    float p_i = results(labels[i], i);
+    cost += std::log(std::max(p_i, 1e-15f));
     if (n_correct != nullptr) {
       int r,c;
       results.col(i).maxCoeff(&r,&c);
@@ -169,16 +166,16 @@ double BasicNN::ComputeCost(const Eigen::MatrixXd& data, const Eigen::VectorXi& 
   return -cost / results.cols();
 }
 
-double BasicNN::ComputeCostBatch(const Eigen::MatrixXd& data, const Eigen::VectorXi& labels, int mini_batch_size, int* n_correct) const {
+float BasicNN::ComputeCostBatch(const Eigen::MatrixXf& data, const Eigen::VectorXi& labels, int mini_batch_size, int* n_correct) const {
   int n_data = static_cast<int>(labels.size());
-  int n_batches = static_cast<int>(std::ceil(static_cast<double>(n_data) / static_cast<double>(mini_batch_size)));
-  double total_cost = 0.0;
+  int n_batches = static_cast<int>(std::ceil(static_cast<float>(n_data) / static_cast<float>(mini_batch_size)));
+  float total_cost = 0.0f;
   if (n_correct != nullptr) { (*n_correct) = 0; }
   for (int j = 0; j < n_batches; ++j) {
     int n_to_grab = ((j+1)*mini_batch_size < n_data) ? mini_batch_size : n_data - j*mini_batch_size;
-    const Eigen::MatrixXd& data_seg = data.middleCols(j*mini_batch_size, n_to_grab);
+    const Eigen::MatrixXf& data_seg = data.middleCols(j*mini_batch_size, n_to_grab);
     const Eigen::VectorXi& labels_seg = labels.segment(j*mini_batch_size, n_to_grab);
-    double batch_cost;
+    float batch_cost;
     if (n_correct != nullptr) {
       int n_correct_batch;
       batch_cost = ComputeCost(data_seg, labels_seg, &n_correct_batch);
@@ -186,21 +183,19 @@ double BasicNN::ComputeCostBatch(const Eigen::MatrixXd& data, const Eigen::Vecto
     } else {
       batch_cost = ComputeCost(data_seg, labels_seg);
     }
-    double batch_weight = static_cast<double>(n_to_grab) / static_cast<double>(n_data);
+    float batch_weight = static_cast<float>(n_to_grab) / static_cast<float>(n_data);
     total_cost += batch_cost * batch_weight;
   }
   return total_cost;
 }
 
-void BasicNN::ApplyLayerGradient(Eigen::MatrixXd& dc_dli, LayerType type, const Eigen::MatrixXd& int_values, const Eigen::VectorXi& labels) const {
+void BasicNN::ApplyLayerGradient(Eigen::MatrixXf& dc_dli, LayerType type, const Eigen::MatrixXf& int_values, const Eigen::VectorXi& labels) const {
   if (type == LayerType::SoftMax) {
     for (int i = 0; i < labels.size(); ++i) {
-      dc_dli(labels[i],i) -= 1.0;
+      dc_dli(labels[i],i) -= 1.0f;
     }
   } else if (type == LayerType::RELU) {
-    Eigen::MatrixXd out = Eigen::MatrixXd::Zero(dc_dli.rows(), dc_dli.cols());
-    out = (int_values.array()>0).select(dc_dli,out);
-    dc_dli = out;
+    dc_dli.noalias() = (int_values.array()>0.0f).select(dc_dli,0.0f);
   } else if (type == LayerType::Pass) {
     // Do nothing -> layer is identity
   } else {
@@ -209,12 +204,12 @@ void BasicNN::ApplyLayerGradient(Eigen::MatrixXd& dc_dli, LayerType type, const 
   }
 }
 
-void BasicNN::UpdateWeights(const Eigen::MatrixXd& data, const Eigen::VectorXi& labels, double alpha) {
-  std::vector<Eigen::MatrixXd> intermediate_values;
+void BasicNN::UpdateWeights(const Eigen::MatrixXf& data, const Eigen::VectorXi& labels, float alpha) {
+  std::vector<Eigen::MatrixXf> intermediate_values;
   ForwardProp(data, &intermediate_values);
 
-  std::vector<Eigen::MatrixXd> weights_gradients;
-  Eigen::MatrixXd dc_dli = intermediate_values.back();
+  std::vector<Eigen::MatrixXf> weights_gradients;
+  Eigen::MatrixXf dc_dli = intermediate_values.back();
   for (int i = static_cast<int>(weights.size())-1; i >= 0; --i) {
     // Apply Layer Gradient:
     ApplyLayerGradient(dc_dli, layers[i+1].first, intermediate_values[i+1], labels);
@@ -232,12 +227,12 @@ void BasicNN::UpdateWeights(const Eigen::MatrixXd& data, const Eigen::VectorXi& 
   }
 }
 
-void BasicNN::UpdateWeightsBatch(const Eigen::MatrixXd& data, const Eigen::VectorXi& labels, double alpha, int mini_batch_size) {
+void BasicNN::UpdateWeightsBatch(const Eigen::MatrixXf& data, const Eigen::VectorXi& labels, float alpha, int mini_batch_size) {
   int n_data = static_cast<int>(labels.size());
-  int n_batches = static_cast<int>(std::ceil(static_cast<double>(n_data) / static_cast<double>(mini_batch_size)));
+  int n_batches = static_cast<int>(std::ceil(static_cast<float>(n_data) / static_cast<float>(mini_batch_size)));
   for (int j = 0; j < n_batches; ++j) {
     int n_to_grab = ((j+1)*mini_batch_size < n_data) ? mini_batch_size : n_data - j*mini_batch_size;
-    const Eigen::MatrixXd& data_seg = data.middleCols(j*mini_batch_size, n_to_grab);
+    const Eigen::MatrixXf& data_seg = data.middleCols(j*mini_batch_size, n_to_grab);
     const Eigen::VectorXi& labels_seg = labels.segment(j*mini_batch_size, n_to_grab);
     UpdateWeights(data_seg, labels_seg, alpha);
   }
